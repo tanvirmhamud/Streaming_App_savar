@@ -3,6 +3,7 @@ const multer = require("multer");
 const jwt = require("jsonwebtoken");
 const accountmodel = require("../Model/useraccount.js")
 const agoralivemodel = require("../Model/agoralive.js")
+const audience = require("../Model/audience.js")
 const verifytoken = require("../Middleware/token.js");
 const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
 const dotenv = require('dotenv');
@@ -89,15 +90,15 @@ const generateRTCToken = (req, resp) => {
 
 
       const liveinfo2 = await accountmodel.findOne({ _id: authData['result']['_id'] })
-      const agorarecentdata = await agoralivemodel.findOne({userid: authData['result']['_id']})
-      
+      const agorarecentdata = await agoralivemodel.findOne({ userid: authData['result']['_id'] })
+
       if (!agorarecentdata) {
         await agoralivemodel({ userid: liveinfo2._id, name: liveinfo2.name, email: liveinfo2.email, live: true, host: true, rtcToken: token, channelname: channelName, uid: uid, role: role }).save()
       } else {
         await agoralivemodel.deleteMany({ userid: liveinfo2._id })
         await agoralivemodel({ userid: liveinfo2._id, name: liveinfo2.name, email: liveinfo2.email, live: true, host: true, rtcToken: token, channelname: channelName, uid: uid, role: role }).save()
       }
-      const agorarecentdata2 = await agoralivemodel.findOne({userid: authData['result']['_id']})
+      const agorarecentdata2 = await agoralivemodel.findOne({ userid: authData['result']['_id'] })
       resp.status(200).json(agorarecentdata2);
       // return resp.json({ 'rtcToken': token, channelname: channelName, uid: uid, role: role });
     }
@@ -112,7 +113,7 @@ app.get('/rtc/:channel/:role/:tokentype/:uid', verifytoken, generateRTCToken)
 
 
 
-
+/// all live stream list
 
 app.get('/islive', verifytoken, upload.single("bookpic"), (req, res) => {
   jwt.verify(req.token, "tanvir", async (err, authData) => {
@@ -120,10 +121,74 @@ app.get('/islive', verifytoken, upload.single("bookpic"), (req, res) => {
       res.status(401).json({ message: "Token Verification Fail" });
     } else {
       const livestream = await agoralivemodel.find()
-       res.status(200).json(livestream);
+      res.status(200).json(livestream);
     }
   })
 })
+
+
+
+app.post('/joinaudience', verifytoken, upload.single("bookpic"), (req, res) => {
+  jwt.verify(req.token, "tanvir", async (err, authData) => {
+    if (err) {
+      res.status(401).json({ message: "Token Verification Fail" });
+    } else {
+      console.log(req.body)
+      const rtctoken = req.body['rtctoken']
+      const liveinfo2 = await accountmodel.findOne({ _id: authData['result']['_id'] })
+      const hostinfo = await agoralivemodel.findOne({ rtcToken: rtctoken })
+      await audience.deleteOne({rtcToken: rtctoken, userid: liveinfo2._id }).exec();
+      await audience({
+        hostid: hostinfo.userid,
+        userid: liveinfo2._id,
+        name: liveinfo2.name,
+        email: liveinfo2.email,
+        live: false,
+        rtcToken: rtctoken,
+        channelname: hostinfo.channelname,
+        uid: hostinfo.uid,
+        role: 2,
+        joinrequest: false
+      }).save()
+      res.status(200).json({ message: "join successfull" });
+      // res.status(200).json({audinece: audience_get})
+    }
+  })
+})
+
+
+app.post('/joinrequest', verifytoken, upload.single("bookpic"), (req, res) => {
+  jwt.verify(req.token, "tanvir", async (err, authData) => {
+    if (err) {
+      res.status(401).json({ message: "Token Verification Fail" });
+    } else {
+      const userid = req.body['userid']
+      const rtctoken = req.body['rtctoken']
+      await audience.updateOne({rtcToken: rtctoken, userid: userid },{joinrequest: true});
+      res.status(200).json({ message: "join request successfull" });
+      // res.status(200).json({audinece: audience_get})
+    }
+  })
+})
+
+
+
+
+app.get('/audiencelist', verifytoken, upload.single("bookpic"), (req, res) => {
+  jwt.verify(req.token, "tanvir", async (err, authData) => {
+    if (err) {
+      res.status(401).json({ message: "Token Verification Fail" });
+    } else {
+      const audiencedata = await audience.find()
+      res.status(200).json(audiencedata);
+    }
+  })
+})
+
+
+
+
+
 
 
 

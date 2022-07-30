@@ -3,8 +3,9 @@ const schema = mongoose.Schema
 
 
 
-const agoralive = new schema({
+const audience = new schema({
     id: schema.ObjectId,
+    hostid: schema.ObjectId,
     userid: schema.ObjectId,
     name: String,
     email: String,
@@ -12,9 +13,10 @@ const agoralive = new schema({
     rtcToken: String,
     channelname: String,
     uid: Number,
-    role: Number
+    role: Number,
+    joinrequest: Boolean
 })
 
-const agoralivemodel = mongoose.model('agoralive',agoralive)
+const audiencemodel = mongoose.model('audience',audience)
 
-module.exports = agoralivemodel
+module.exports = audiencemodel
